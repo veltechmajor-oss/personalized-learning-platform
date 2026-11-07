@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentNav from "@/components/StudentNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   FileCheck,
@@ -65,6 +66,7 @@ interface SubmitResult {
 }
 
 function TakeAssessmentContent() {
+  const { profile, loading: authLoading } = useAuth();
   const params = useParams();
   const router = useRouter();
   const assessmentId = params?.id as string;
@@ -77,8 +79,8 @@ function TakeAssessmentContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading || !profile || !assessmentId) return;
     async function loadAssessment() {
-      if (!assessmentId) return;
       try {
         setLoading(true);
         const data = await apiRequest<AssessmentView>(`/api/assessments/${assessmentId}`);
@@ -90,7 +92,7 @@ function TakeAssessmentContent() {
       }
     }
     loadAssessment();
-  }, [assessmentId]);
+  }, [authLoading, profile, assessmentId]);
 
   const handleSelectOption = (questionId: string, option: string) => {
     if (result) return;

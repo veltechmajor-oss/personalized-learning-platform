@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentNav from "@/components/StudentNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   FileCheck,
@@ -33,10 +34,12 @@ interface AssessmentItem {
 }
 
 export default function StudentAssessmentsListPage() {
+  const { profile, loading: authLoading } = useAuth();
   const [assessments, setAssessments] = useState<AssessmentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !profile) return;
     async function loadAssessments() {
       try {
         setLoading(true);
@@ -49,7 +52,7 @@ export default function StudentAssessmentsListPage() {
       }
     }
     loadAssessments();
-  }, []);
+  }, [authLoading, profile]);
 
   return (
     <ProtectedRoute allowedRoles={["student", "admin"]}>

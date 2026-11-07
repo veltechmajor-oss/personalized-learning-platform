@@ -1,17 +1,14 @@
 /**
  * Centralized API client for communicating with the FastAPI backend.
- * Automatically injects the Firebase Authorization Bearer token.
- */
-
-/**
- * Centralized API client for communicating with the FastAPI backend.
- * Automatically injects the Firebase Authorization Bearer token.
+ * Automatically injects the fresh Firebase Authorization Bearer token.
  * 
  * Base URL Priority:
  * 1. process.env.NEXT_PUBLIC_API_URL (Primary standard)
  * 2. process.env.NEXT_PUBLIC_BACKEND_URL (Backward compatibility for existing setups)
  * 3. http://localhost:8000 (Local development default)
  */
+
+import { auth } from "./firebase";
 
 export const API_BASE_URL = (() => {
   const envUrl = (
@@ -31,9 +28,59 @@ export function setAuthTokenGetter(getter: () => Promise<string | null>) {
   authTokenGetter = getter;
 }
 
+/**
+ * Obtains a fresh Firebase ID token.
+ * 1. Waits for Firebase authentication to initialize via auth.authStateReady().
+ * 2. Uses auth.currentUser.getIdToken(forceRefresh) to ensure an unexpired token.
+ * 3. Falls back to dev_auth_token in localStorage for local testing.
+ */
+export async function getFreshIdToken(forceRefresh: boolean = false): Promise<string | null> {
+  // If a custom token getter is explicitly set and provides a token, check it
+  if (authTokenGetter) {
+    try {
+      const customToken = await authTokenGetter();
+      if (customToken) return customToken;
+    } catch {
+      // Fall through to direct Firebase auth retrieval
+    }
+  }
+
+  // Retrieve directly from Firebase Auth singleton
+  if (typeof window !== "undefined") {
+    try {
+      if (typeof auth.authStateReady === "function") {
+        await auth.authStateReady();
+      }
+    } catch (e) {
+      console.warn("[Auth] authStateReady initialization error:", e);
+    }
+
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        return await user.getIdToken(forceRefresh);
+      } catch (err: any) {
+        console.warn("[Auth] Failed to retrieve fresh Firebase ID token:", err);
+      }
+    }
+
+    // Support dev bypass token stored in localStorage
+    const devToken = localStorage.getItem("dev_auth_token");
+    if (devToken) {
+      return devToken;
+    }
+  }
+
+  return null;
+}
+
+interface ExtendedRequestInit extends RequestInit {
+  _retried?: boolean;
+}
+
 export async function apiRequest<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: ExtendedRequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
@@ -41,15 +88,17 @@ export async function apiRequest<T = any>(
     ...(options.headers as Record<string, string> || {}),
   };
 
-  // Attach token if available
-  if (authTokenGetter) {
-    try {
-      const token = await authTokenGetter();
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-    } catch {
-      // Ignore token fetch failure
+  const isPublicEndpoint = (
+    endpoint === "/api/health" ||
+    endpoint === "/health" ||
+    endpoint === "/"
+  );
+
+  // Automatically attach fresh Bearer token if not explicitly supplied
+  if (!headers["Authorization"]) {
+    const token = await getFreshIdToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
   }
 
@@ -70,6 +119,22 @@ export async function apiRequest<T = any>(
     throw new Error(
       `Unable to connect to backend (${API_BASE_URL}): ${errorMsg}. Please verify that the backend is running and NEXT_PUBLIC_API_URL is configured correctly.`
     );
+  }
+
+  // If 401 Unauthorized, attempt a single token force-refresh and retry
+  if (res.status === 401 && !options._retried && !isPublicEndpoint) {
+    const freshToken = await getFreshIdToken(true);
+    if (freshToken) {
+      const retryHeaders = {
+        ...headers,
+        Authorization: `Bearer ${freshToken}`,
+      };
+      return apiRequest<T>(endpoint, {
+        ...options,
+        headers: retryHeaders,
+        _retried: true,
+      });
+    }
   }
 
   if (!res.ok) {

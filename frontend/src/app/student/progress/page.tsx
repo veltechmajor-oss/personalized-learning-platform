@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentNav from "@/components/StudentNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   TrendingUp,
@@ -56,11 +57,13 @@ interface ProgressData {
 }
 
 export default function StudentAcademicProgressPage() {
+  const { profile, loading: authLoading } = useAuth();
   const [data, setData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading || !profile) return;
     async function loadProgress() {
       try {
         setLoading(true);
@@ -73,7 +76,7 @@ export default function StudentAcademicProgressPage() {
       }
     }
     loadProgress();
-  }, []);
+  }, [authLoading, profile]);
 
   return (
     <ProtectedRoute allowedRoles={["student", "admin"]}>

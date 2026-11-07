@@ -59,12 +59,13 @@ interface DashboardData {
 }
 
 export default function StudentDashboardPage() {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading || !profile) return;
     async function loadDashboard() {
       try {
         setLoading(true);
@@ -77,7 +78,7 @@ export default function StudentDashboardPage() {
       }
     }
     loadDashboard();
-  }, []);
+  }, [authLoading, profile]);
 
   return (
     <ProtectedRoute allowedRoles={["student", "admin"]}>

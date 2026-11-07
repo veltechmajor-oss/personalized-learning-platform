@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminNav from "@/components/AdminNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   TrendingUp,
@@ -84,6 +85,7 @@ interface StudentProgressData {
 }
 
 export default function AdminAcademicRecordsPage() {
+  const { profile, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<"records" | "dossier">("records");
 
   // Records Table State
@@ -112,11 +114,13 @@ export default function AdminAcademicRecordsPage() {
   };
 
   useEffect(() => {
+    if (authLoading || !profile || profile.role !== "admin") return;
     loadRecords();
-  }, []);
+  }, [authLoading, profile]);
 
   // Load Students
   useEffect(() => {
+    if (authLoading || !profile || profile.role !== "admin") return;
     async function loadStudents() {
       try {
         setLoadingStudents(true);
@@ -132,7 +136,7 @@ export default function AdminAcademicRecordsPage() {
       }
     }
     loadStudents();
-  }, []);
+  }, [authLoading, profile]);
 
   // Load Selected Student Dossier
   useEffect(() => {

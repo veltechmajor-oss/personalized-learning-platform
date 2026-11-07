@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentNav from "@/components/StudentNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   HelpCircle,
@@ -74,6 +75,7 @@ interface QueryHistoryItem {
 }
 
 export default function Model1LearningPage() {
+  const { profile, loading: authLoading } = useAuth();
   const router = useRouter();
 
   // Document selection
@@ -101,6 +103,7 @@ export default function Model1LearningPage() {
 
   // Load student documents
   useEffect(() => {
+    if (authLoading || !profile) return;
     async function fetchDocuments() {
       try {
         setDocsLoading(true);
@@ -117,7 +120,7 @@ export default function Model1LearningPage() {
     }
     fetchDocuments();
     fetchHistory();
-  }, []);
+  }, [authLoading, profile]);
 
   const fetchHistory = async () => {
     try {

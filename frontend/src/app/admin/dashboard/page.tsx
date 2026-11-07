@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminNav from "@/components/AdminNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   Users,
@@ -28,6 +29,7 @@ interface AdminOverviewData {
 }
 
 export default function AdminDashboardPage() {
+  const { profile, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<AdminOverviewData>({
     total_users: 0,
     total_videos: 0,
@@ -38,6 +40,10 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for authentication to resolve before loading admin overview data
+    if (authLoading) return;
+    if (!profile || profile.role !== "admin") return;
+
     async function loadStats() {
       try {
         setLoading(true);
@@ -61,7 +67,7 @@ export default function AdminDashboardPage() {
       }
     }
     loadStats();
-  }, []);
+  }, [authLoading, profile]);
 
   return (
     <ProtectedRoute allowedRoles={["admin"]}>

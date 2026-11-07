@@ -33,9 +33,9 @@ export default function ProtectedRoute({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
-        <p className="text-sm font-medium">Verifying authorization...</p>
+      <div className="min-h-screen bg-[#0D1445] flex flex-col items-center justify-center text-white font-sans">
+        <Loader2 className="w-8 h-8 animate-spin text-[#BFBFDB] mb-3" />
+        <p className="text-sm font-semibold tracking-wide">Verifying authorization...</p>
       </div>
     );
   }

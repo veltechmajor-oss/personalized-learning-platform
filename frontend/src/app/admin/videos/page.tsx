@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminNav from "@/components/AdminNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   Folder,
@@ -55,6 +56,7 @@ interface VideoLesson {
 }
 
 export default function AdminVideosPage() {
+  const { profile, loading: authLoading } = useAuth();
   // Folders and Videos state
   const [folders, setFolders] = useState<CourseFolder[]>([]);
   const [videos, setVideos] = useState<VideoLesson[]>([]);
@@ -103,8 +105,10 @@ export default function AdminVideosPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!profile || profile.role !== "admin") return;
     loadData();
-  }, []);
+  }, [authLoading, profile]);
 
   // Active folder object
   const activeFolder = folders.find((f) => (f.id || f.folder_id) === activeFolderId);

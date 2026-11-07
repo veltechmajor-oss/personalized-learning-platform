@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentNav from "@/components/StudentNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   FileText,
@@ -40,6 +41,7 @@ interface DocumentItem {
 }
 
 export default function StudentDocumentsPage() {
+  const { profile, loading: authLoading } = useAuth();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -62,8 +64,9 @@ export default function StudentDocumentsPage() {
   };
 
   useEffect(() => {
+    if (authLoading || !profile) return;
     fetchDocuments();
-  }, []);
+  }, [authLoading, profile]);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();

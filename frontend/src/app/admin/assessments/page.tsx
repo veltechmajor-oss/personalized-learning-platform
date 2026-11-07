@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminNav from "@/components/AdminNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   FileCheck,
@@ -82,6 +83,7 @@ interface AdminAssessmentDetails {
 }
 
 export default function AdminAssessmentsPage() {
+  const { profile, loading: authLoading } = useAuth();
   const [assessments, setAssessments] = useState<AssessmentItem[]>([]);
   const [videos, setVideos] = useState<VideoLesson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,8 +143,10 @@ export default function AdminAssessmentsPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!profile || profile.role !== "admin") return;
     loadData();
-  }, []);
+  }, [authLoading, profile]);
 
   // Handle AI Assessment Generation via Gemini
   const handleGenerateAiAssessment = async (e: React.FormEvent) => {

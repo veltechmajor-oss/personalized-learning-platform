@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentNav from "@/components/StudentNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   Video,
@@ -61,6 +62,7 @@ interface VideoLesson {
 }
 
 export default function StudentVideosPage() {
+  const { profile, loading: authLoading } = useAuth();
   const router = useRouter();
 
   // Navigation State
@@ -96,8 +98,9 @@ export default function StudentVideosPage() {
   };
 
   useEffect(() => {
+    if (authLoading || !profile) return;
     fetchFolders();
-  }, []);
+  }, [authLoading, profile]);
 
   // Fetch Videos for Selected Folder
   const fetchVideosForFolder = async (folder: CourseFolder) => {

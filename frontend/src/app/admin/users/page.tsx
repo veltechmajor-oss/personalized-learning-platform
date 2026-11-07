@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminNav from "@/components/AdminNav";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import {
   Users,
@@ -24,6 +25,7 @@ interface UserItem {
 }
 
 export default function AdminUsersPage() {
+  const { profile, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("");
@@ -49,8 +51,12 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => {
+    // Wait for Firebase auth to initialize before fetching protected data
+    if (authLoading) return;
+    if (!profile || profile.role !== "admin") return;
+
     fetchUsers();
-  }, [roleFilter]);
+  }, [authLoading, profile, roleFilter]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

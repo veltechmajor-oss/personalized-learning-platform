@@ -56,13 +56,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sync profile from backend
   const fetchProfile = async (firebaseUser?: FirebaseUser | null) => {
-    try {
-      const data = await apiRequest<UserProfile>("/api/auth/me");
-      setProfile(data);
-    } catch {
-      // Fallback profile if backend request failed during dev mode
-      if (firebaseUser) {
+    const targetUser = firebaseUser || auth.currentUser;
+    if (!targetUser) {
+      const devToken = typeof window !== "undefined" ? localStorage.getItem("dev_auth_token") : null;
+      if (devToken) {
+        const role = devToken.includes("admin") ? "admin" : "student";
         setProfile({
+          uid: devToken.replace("dev-token-", ""),
+          email: `${devToken.replace("dev-token-", "")}@academic.edu`,
+          name: role === "admin" ? "Platform Administrator" : "Academic Student",
+          role,
+          status: "active",
+        });
+      } else {
+        setProfile(null);
+      }
+      return;
+    }
+
+    try {
+      const token = await targetUser.getIdToken();
+      const data = await apiRequest<UserProfile>("/api/auth/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setProfile(data);
+    } catch (err: any) {
+      console.warn("[Auth] Failed to sync profile from /api/auth/me:", err);
+      // Fallback profile preserving basic info
+      if (firebaseUser) {
+        setProfile((prev) => prev || {
           uid: firebaseUser.uid,
           email: firebaseUser.email || "",
           name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Student",
@@ -94,7 +118,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (currentUser) {
         await fetchProfile(currentUser);
       } else {
-        setProfile(null);
+        const currentDevToken = typeof window !== "undefined" ? localStorage.getItem("dev_auth_token") : null;
+        if (!currentDevToken) {
+          setProfile(null);
+        }
       }
       setLoading(false);
     });
@@ -104,28 +131,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, pass: string) => {
     if (typeof window !== "undefined") localStorage.removeItem("dev_auth_token");
-    const cred = await signInWithEmailAndPassword(auth, email, pass);
-    setUser(cred.user);
-    await fetchProfile(cred.user);
+    setLoading(true);
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, pass);
+      setUser(cred.user);
+      await fetchProfile(cred.user);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const register = async (name: string, email: string, pass: string) => {
     if (typeof window !== "undefined") localStorage.removeItem("dev_auth_token");
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-    await updateProfile(cred.user, { displayName: name });
-    setUser(cred.user);
-
-    // Sync with backend database
+    setLoading(true);
     try {
-      await apiRequest("/api/auth/sync", {
-        method: "POST",
-        body: JSON.stringify({ name, email }),
-      });
-    } catch {
-      // Sync deferred
-    }
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(cred.user, { displayName: name });
+      setUser(cred.user);
 
-    await fetchProfile(cred.user);
+      // Sync with backend database
+      try {
+        const token = await cred.user.getIdToken();
+        await apiRequest("/api/auth/sync", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name, email }),
+        });
+      } catch {
+        // Sync deferred
+      }
+
+      await fetchProfile(cred.user);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {
