@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #F7F7FA;
+  --color-foreground: #17172B;
+
+  /* Five-Colour Brand Palette */
+  --color-brand-navy: #0D1445;
+  --color-brand-purple: #BFBFDB;
+  --color-brand-sage: #C2D9D1;
+  --color-brand-red: #AD525E;
+  --color-brand-pink: #E0D0D9;
+
+  /* Supporting Neutrals */
+  --color-card: #FFFFFF;
+  --color-text-main: #17172B;
+  --color-text-muted: #686A7D;
+  --color-border: #E4E3EC;
+}
+
+:root {
+  --background: #F7F7FA;
+  --foreground: #17172B;
+
+  --primary-navy: #0D1445;
+  --secondary-purple: #BFBFDB;
+  --sage-green: #C2D9D1;
+  --muted-red: #AD525E;
+  --soft-pink: #E0D0D9;
+
+  --card-bg: #FFFFFF;
+  --text-main: #17172B;
+  --text-secondary: #686A7D;
+  --border-card: #E4E3EC;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F7FA;
+}
+::-webkit-scrollbar-thumb {
+  background: #BFBFDB;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9B9BB8;
+}
