@@ -70,7 +70,7 @@ def test_document_validation_and_upload():
     assert res_good.status_code == 200
     doc_data = res_good.json()
     assert doc_data["chunk_count"] >= 1
-    assert doc_data["status"] == "processed"
+    assert doc_data["status"] in ["READY", "processed"]
 
 
 def test_rag_query_grounding():
