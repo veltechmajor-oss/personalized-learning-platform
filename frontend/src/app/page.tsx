@@ -59,7 +59,8 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      const rawUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000").trim().replace(/\/+$/, "");
+      const backendUrl = rawUrl.startsWith("http://") || rawUrl.startsWith("https://") ? rawUrl : `https://${rawUrl}`;
       const res = await fetch(`${backendUrl}/api/learning/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
