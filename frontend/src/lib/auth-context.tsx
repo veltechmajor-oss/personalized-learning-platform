@@ -117,13 +117,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Sync with backend database
     try {
-      const token = await cred.user.getIdToken();
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"}/api/auth/sync`, {
+      await apiRequest("/api/auth/sync", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ name, email }),
       });
     } catch {

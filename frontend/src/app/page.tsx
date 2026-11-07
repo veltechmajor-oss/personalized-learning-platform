@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { apiRequest } from "@/lib/api";
 import {
   GraduationCap,
   Sparkles,
@@ -59,20 +60,15 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const rawUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000").trim().replace(/\/+$/, "");
-      const backendUrl = rawUrl.startsWith("http://") || rawUrl.startsWith("https://") ? rawUrl : `https://${rawUrl}`;
-      const res = await fetch(`${backendUrl}/api/learning/query`, {
+      const data = await apiRequest<{
+        response: string;
+        sources: string[];
+        recommended_topics: string[];
+      }>("/api/learning/query", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, subject: "Computer Science" }),
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        setRagResult(data);
-      } else {
-        throw new Error("Backend offline");
-      }
+      setRagResult(data);
     } catch {
       // High-quality contextual fallback
       setRagResult({

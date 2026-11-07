@@ -407,12 +407,27 @@ export default function AdminVideosPage() {
               </div>
 
               {filteredFolders.length === 0 ? (
-                <div className="bg-white border border-[#E4E3EC] rounded-2xl p-12 text-center text-[#686A7D] text-xs shadow-xs">
-                  <Folder className="w-12 h-12 text-[#BFBFDB] mx-auto mb-3" />
-                  <p className="font-bold text-[#17172B] text-sm">No Course Folders Found</p>
-                  <p className="mt-1 text-xs text-[#686A7D]">
-                    {searchQuery ? "No folders match your search." : "Create your first course folder to start organizing video lessons."}
+                <div className="bg-white border border-[#E4E3EC] rounded-2xl p-12 text-center text-[#686A7D] text-xs shadow-xs space-y-3">
+                  <Folder className="w-12 h-12 text-[#BFBFDB] mx-auto mb-1" />
+                  <p className="font-bold text-[#17172B] text-sm">
+                    {message?.type === "error" ? "Unable to Load Course Folders" : "No Course Folders Found"}
                   </p>
+                  <p className="mt-1 text-xs text-[#686A7D]">
+                    {message?.type === "error"
+                      ? message.text
+                      : searchQuery
+                      ? "No folders match your search."
+                      : "Create your first course folder to start organizing video lessons."}
+                  </p>
+                  {message?.type === "error" && (
+                    <button
+                      type="button"
+                      onClick={loadData}
+                      className="px-3.5 py-1.5 bg-[#0D1445] text-white rounded-xl text-xs font-bold hover:bg-[#162060] transition-colors cursor-pointer"
+                    >
+                      Retry Connection
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

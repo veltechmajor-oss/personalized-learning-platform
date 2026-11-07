@@ -171,8 +171,24 @@ export default function AdminUsersPage() {
                 <Loader2 className="w-8 h-8 animate-spin text-[#0D1445]" />
               </div>
             ) : users.length === 0 ? (
-              <div className="py-16 text-center text-[#686A7D] text-xs">
-                No users found matching query criteria.
+              <div className="py-16 text-center text-[#686A7D] text-xs space-y-3">
+                {message?.type === "error" ? (
+                  <>
+                    <div className="text-[#AD525E] font-medium flex items-center justify-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>{message.text}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={fetchUsers}
+                      className="px-3.5 py-1.5 bg-[#0D1445] text-white rounded-xl text-xs font-bold hover:bg-[#162060] transition-colors cursor-pointer"
+                    >
+                      Retry Connection
+                    </button>
+                  </>
+                ) : (
+                  <div>No users found matching query criteria.</div>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">

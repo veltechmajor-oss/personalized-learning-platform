@@ -3,10 +3,27 @@
  * Automatically injects the Firebase Authorization Bearer token.
  */
 
-const rawBackendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000").trim().replace(/\/+$/, "");
-const BACKEND_URL = rawBackendUrl.startsWith("http://") || rawBackendUrl.startsWith("https://")
-  ? rawBackendUrl
-  : `https://${rawBackendUrl}`;
+/**
+ * Centralized API client for communicating with the FastAPI backend.
+ * Automatically injects the Firebase Authorization Bearer token.
+ * 
+ * Base URL Priority:
+ * 1. process.env.NEXT_PUBLIC_API_URL (Primary standard)
+ * 2. process.env.NEXT_PUBLIC_BACKEND_URL (Backward compatibility for existing setups)
+ * 3. http://localhost:8000 (Local development default)
+ */
+
+export const API_BASE_URL = (() => {
+  const envUrl = (
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    "http://localhost:8000"
+  ).trim().replace(/\/+$/, "");
+
+  return envUrl.startsWith("http://") || envUrl.startsWith("https://")
+    ? envUrl
+    : `https://${envUrl}`;
+})();
 
 let authTokenGetter: (() => Promise<string | null>) | null = null;
 
@@ -18,7 +35,7 @@ export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${BACKEND_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> || {}),
@@ -41,10 +58,19 @@ export async function apiRequest<T = any>(
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (netErr: any) {
+    const errorMsg = netErr?.message || "Connection refused / network offline";
+    console.error(`[API Network Failure] Failed to reach ${url}:`, netErr);
+    throw new Error(
+      `Unable to connect to backend (${API_BASE_URL}): ${errorMsg}. Please verify that the backend is running and NEXT_PUBLIC_API_URL is configured correctly.`
+    );
+  }
 
   if (!res.ok) {
     let errorDetail = `Request failed with status ${res.status}`;

@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Sparkles,
   Folder,
+  AlertTriangle,
 } from "lucide-react";
 
 interface AdminOverviewData {
@@ -34,15 +35,17 @@ export default function AdminDashboardPage() {
     total_attempts: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadStats() {
       try {
         setLoading(true);
+        setError(null);
         const [users, videos, assessments] = await Promise.all([
-          apiRequest<any[]>("/api/users").catch(() => []),
-          apiRequest<any[]>("/api/videos").catch(() => []),
-          apiRequest<any[]>("/api/assessments").catch(() => []),
+          apiRequest<any[]>("/api/users"),
+          apiRequest<any[]>("/api/videos"),
+          apiRequest<any[]>("/api/assessments"),
         ]);
 
         setStats({
@@ -51,8 +54,8 @@ export default function AdminDashboardPage() {
           total_assessments: assessments.length,
           total_attempts: 0,
         });
-      } catch {
-        // Ignore
+      } catch (err: any) {
+        setError(err?.message || "Failed to connect to backend service");
       } finally {
         setLoading(false);
       }
@@ -97,6 +100,18 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </div>
+
+          {error && (
+            <div className="p-4 rounded-2xl bg-[#FBF1F2] border border-[#AD525E] text-[#7A2633] text-xs flex items-center justify-between font-medium">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-[#AD525E]" />
+                <span>{error}</span>
+              </div>
+              <button onClick={() => window.location.reload()} className="underline font-bold cursor-pointer ml-3">
+                Retry
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <div className="py-24 flex justify-center text-[#686A7D]">
