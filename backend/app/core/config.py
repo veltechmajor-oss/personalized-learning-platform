@@ -21,7 +21,10 @@ class Settings(BaseSettings):
     # Qdrant
     QDRANT_URL: str = "https://c16762c5-f84b-4e5a-93a4-6bb790b8805f.sa-east-1-0.aws.cloud.qdrant.io"
     QDRANT_API_KEY: str = ""
+    QDRANT_KEY: Optional[str] = None
+    QDRANT_APIKEY: Optional[str] = None
     QDRANT_COLLECTION: str = "learning_materials"
+    QDRANT_COLLECTION_NAME: Optional[str] = None
 
     # Firebase
     FIREBASE_PROJECT_ID: str = "personalized-learning-a2477"
@@ -49,6 +52,44 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> List[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+
+    @property
+    def effective_qdrant_url(self) -> str:
+        url = (
+            (self.QDRANT_URL and self.QDRANT_URL.strip())
+            or os.environ.get("QDRANT_URL", "").strip()
+            or "https://c16762c5-f84b-4e5a-93a4-6bb790b8805f.sa-east-1-0.aws.cloud.qdrant.io"
+        )
+        if (url.startswith('"') and url.endswith('"')) or (url.startswith("'") and url.endswith("'")):
+            url = url[1:-1].strip()
+        return url.rstrip("/")
+
+    @property
+    def effective_qdrant_api_key(self) -> str:
+        key = (
+            (self.QDRANT_API_KEY and self.QDRANT_API_KEY.strip())
+            or (self.QDRANT_KEY and self.QDRANT_KEY.strip())
+            or (self.QDRANT_APIKEY and self.QDRANT_APIKEY.strip())
+            or os.environ.get("QDRANT_API_KEY", "").strip()
+            or os.environ.get("QDRANT_KEY", "").strip()
+            or os.environ.get("QDRANT_APIKEY", "").strip()
+        )
+        if (key.startswith('"') and key.endswith('"')) or (key.startswith("'") and key.endswith("'")):
+            key = key[1:-1].strip()
+        return key
+
+    @property
+    def effective_qdrant_collection(self) -> str:
+        col = (
+            (self.QDRANT_COLLECTION_NAME and self.QDRANT_COLLECTION_NAME.strip())
+            or (self.QDRANT_COLLECTION and self.QDRANT_COLLECTION.strip())
+            or os.environ.get("QDRANT_COLLECTION_NAME", "").strip()
+            or os.environ.get("QDRANT_COLLECTION", "").strip()
+            or "learning_materials"
+        )
+        if (col.startswith('"') and col.endswith('"')) or (col.startswith("'") and col.endswith("'")):
+            col = col[1:-1].strip()
+        return col
 
 
 settings = Settings()

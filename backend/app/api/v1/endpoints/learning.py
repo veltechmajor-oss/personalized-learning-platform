@@ -9,6 +9,13 @@ from app.core.firebase import firebase_manager
 from app.services.rag_service import rag_service
 from app.services.gemini_service import gemini_service
 from app.services.assessment_generation_service import assessment_generation_service
+from app.services.qdrant_service import (
+    qdrant_service,
+    QdrantAuthenticationError,
+    QdrantCollectionNotFoundError,
+    QdrantDimensionMismatchError,
+    QdrantConnectionError,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -122,6 +129,33 @@ async def query_learning_content(
             student_id=current_user.uid,
             document_id=request.document_id,
             top_k=4
+        )
+    except QdrantAuthenticationError as ae:
+        logger.error("RAG Query Qdrant authentication failure: %s", ae)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Qdrant Cloud authentication failed (HTTP 403 Forbidden). "
+                "Please verify that QDRANT_API_KEY is configured correctly in Render service environment variables."
+            )
+        )
+    except QdrantCollectionNotFoundError as cfe:
+        logger.error("RAG Query Qdrant collection not found: %s", cfe)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Qdrant collection '{qdrant_service.collection_name}' was not found in Qdrant cluster."
+        )
+    except QdrantDimensionMismatchError as dme:
+        logger.error("RAG Query vector dimension mismatch: %s", dme)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(dme)
+        )
+    except QdrantConnectionError as ce:
+        logger.error("RAG Query Qdrant connection error: %s", ce)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Cannot reach Qdrant Cloud cluster. Please check network connection and cluster status."
         )
     except Exception as e:
         logger.exception("Qdrant RAG context retrieval failed: %s", e)

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.router import api_router
 from app.services.migration_service import run_video_folder_migration
+from app.services.qdrant_service import qdrant_service
 
 logger = logging.getLogger("app.main")
 
@@ -17,6 +18,29 @@ async def lifespan(app: FastAPI):
         run_video_folder_migration()
     except Exception as e:
         logger.warning("Startup migration check error: %s", e)
+
+    # Safe startup diagnostics for Qdrant Cloud
+    try:
+        diag = qdrant_service.check_health()
+        if diag.get("status") == "HEALTHY":
+            logger.info(
+                "Qdrant vector database ready: collection='%s', points=%d, dim=%d",
+                diag.get("collection"),
+                diag.get("points_count", 0),
+                diag.get("vector_dimension", 0),
+            )
+        else:
+            logger.warning(
+                "Qdrant startup diagnostic [%s]: %s (cluster: %s, collection: %s, key_configured: %s)",
+                diag.get("status"),
+                diag.get("message"),
+                diag.get("cluster_url"),
+                diag.get("collection"),
+                diag.get("api_key_configured"),
+            )
+    except Exception as e:
+        logger.error("Qdrant startup diagnostic check error: %s", e)
+
     yield
 
 

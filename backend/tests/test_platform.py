@@ -17,6 +17,8 @@ def test_health_check():
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "healthy"
+    assert "qdrant" in data
+    assert "status" in data["qdrant"]
 
 
 def test_auth_unauthorized():
@@ -277,3 +279,17 @@ def test_learning_query_general_knowledge_and_cors():
     assert data["mode"] == "general_knowledge"
     assert "response" in data
     assert len(data["response"]) > 20
+
+
+def test_qdrant_service_diagnostics():
+    """Verify safe Qdrant diagnostics without exposing secrets."""
+    from app.services.qdrant_service import qdrant_service
+    diag = qdrant_service.check_health()
+    assert "status" in diag
+    assert "cluster_url" in diag
+    assert "collection" in diag
+    assert "api_key_configured" in diag
+    # Ensure raw API key is never in diagnostic output
+    assert diag.get("api_key") is None
+    if diag.get("api_key_masked"):
+        assert "..." in diag["api_key_masked"] or diag["api_key_masked"] == "NONE"
