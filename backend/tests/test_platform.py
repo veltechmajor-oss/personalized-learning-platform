@@ -222,3 +222,58 @@ def test_academic_progress_and_recommendations():
     assert "topic_performance" in data
     assert "revision_recommendations" in data
     assert "recent_activities" in data
+
+
+def test_cors_preflight_and_origin_headers():
+    """Verify CORS preflight OPTIONS request and CORS headers for deployed frontend."""
+    frontend_origin = "https://personalized-learning-platform-1-l82p.onrender.com"
+
+    # Preflight OPTIONS request
+    preflight_res = client.options(
+        "/api/learning/query",
+        headers={
+            "Origin": frontend_origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization, content-type",
+        }
+    )
+    assert preflight_res.status_code == 200
+    assert preflight_res.headers.get("access-control-allow-origin") == frontend_origin
+    assert preflight_res.headers.get("access-control-allow-credentials") == "true"
+    allow_methods = preflight_res.headers.get("access-control-allow-methods", "")
+    assert "POST" in allow_methods
+    assert "OPTIONS" in allow_methods
+
+    # Authenticated GET with Origin header
+    get_res = client.get(
+        "/api/auth/me",
+        headers={
+            "Origin": frontend_origin,
+            **STUDENT_AUTH_HEADER
+        }
+    )
+    assert get_res.status_code == 200
+    assert get_res.headers.get("access-control-allow-origin") == frontend_origin
+
+
+def test_learning_query_general_knowledge_and_cors():
+    """Verify /api/learning/query in general knowledge mode returns proper structure and CORS headers."""
+    frontend_origin = "https://personalized-learning-platform-1-l82p.onrender.com"
+    res = client.post(
+        "/api/learning/query",
+        headers={
+            "Origin": frontend_origin,
+            **STUDENT_AUTH_HEADER
+        },
+        json={
+            "query": "What is Natural Language Processing?",
+            "mode": "general_knowledge",
+            "subject": "Computer Science"
+        }
+    )
+    assert res.status_code == 200
+    assert res.headers.get("access-control-allow-origin") == frontend_origin
+    data = res.json()
+    assert data["mode"] == "general_knowledge"
+    assert "response" in data
+    assert len(data["response"]) > 20

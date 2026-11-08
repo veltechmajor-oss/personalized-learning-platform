@@ -8,10 +8,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     PORT: int = 8000
     ALLOWED_ORIGINS: str = (
-        "http://localhost:3000,"
-        "http://127.0.0.1:3000,"
         "https://personalized-learning-platform-1-l82p.onrender.com,"
-        "https://personalized-learning-frontend.onrender.com"
+        "https://personalized-learning-frontend.onrender.com,"
+        "http://localhost:3000,"
+        "http://127.0.0.1:3000"
     )
 
     # Gemini
@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-1.5-flash"
 
     # Qdrant
-    QDRANT_URL: str = ""
+    QDRANT_URL: str = "https://c16762c5-f84b-4e5a-93a4-6bb790b8805f.sa-east-1-0.aws.cloud.qdrant.io"
     QDRANT_API_KEY: str = ""
     QDRANT_COLLECTION: str = "learning_materials"
 

@@ -11,15 +11,26 @@
 import { auth } from "./firebase";
 
 export const API_BASE_URL = (() => {
-  const envUrl = (
+  const isBrowser = typeof window !== "undefined";
+  const isLocalHost = isBrowser && (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+  );
+
+  const rawUrl = (
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
-    "http://localhost:8000"
+    (isLocalHost ? "http://localhost:8000" : "https://personalized-learning-platform-8707.onrender.com")
   ).trim().replace(/\/+$/, "");
 
-  return envUrl.startsWith("http://") || envUrl.startsWith("https://")
-    ? envUrl
-    : `https://${envUrl}`;
+  // Prevent production browsers from sending requests to localhost
+  const finalUrl = (isBrowser && !isLocalHost && (rawUrl.includes("localhost") || rawUrl.includes("127.0.0.1")))
+    ? "https://personalized-learning-platform-8707.onrender.com"
+    : rawUrl;
+
+  return finalUrl.startsWith("http://") || finalUrl.startsWith("https://")
+    ? finalUrl
+    : `https://${finalUrl}`;
 })();
 
 let authTokenGetter: (() => Promise<string | null>) | null = null;

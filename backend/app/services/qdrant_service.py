@@ -151,14 +151,15 @@ class QdrantService:
 
             for hit in response.points:
                 payload = hit.payload or {}
+                hit_score = round(float(hit.score), 4) if hit.score is not None else 0.0
                 results.append(
                     {
-                        "text": payload.get("text", ""),
-                        "source": payload.get("source", "Study Material"),
-                        "document_id": payload.get("document_id", ""),
-                        "chunk_index": payload.get("chunk_index", 0),
-                        "page_number": payload.get("page_number", 1),
-                        "score": round(hit.score, 4),
+                        "text": payload.get("text") or "",
+                        "source": payload.get("source") or "Study Material",
+                        "document_id": payload.get("document_id") or "",
+                        "chunk_index": int(payload.get("chunk_index") or 0),
+                        "page_number": int(payload.get("page_number") or 1),
+                        "score": hit_score,
                     }
                 )
             return results

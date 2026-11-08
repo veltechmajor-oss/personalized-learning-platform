@@ -23,9 +23,9 @@ class LearningQueryRequest(BaseModel):
 
 
 class RetrievedSourcePassage(BaseModel):
-    source: str
-    text: str
-    score: float
+    source: str = "Uploaded Study Notes"
+    text: str = ""
+    score: float = 0.0
     chunk_index: int = 0
     page_number: int = 1
 
@@ -116,33 +116,47 @@ async def query_learning_content(
         )
 
     # Branch 2: Document Grounded RAG Mode
-    chunks, is_sufficient, evidence_hint = await rag_service.retrieve_relevant_contexts(
-        query=request.query,
-        student_id=current_user.uid,
-        document_id=request.document_id,
-        top_k=4
-    )
+    try:
+        chunks, is_sufficient, evidence_hint = await rag_service.retrieve_relevant_contexts(
+            query=request.query,
+            student_id=current_user.uid,
+            document_id=request.document_id,
+            top_k=4
+        )
+    except Exception as e:
+        logger.exception("Qdrant RAG context retrieval failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Vector search service (Qdrant) failed: {str(e)}"
+        )
 
     context_texts = [c["text"] for c in chunks if "text" in c]
-    sources = list({c.get("source", document_name) for c in chunks})
+    sources = list({c.get("source") or document_name for c in chunks})
     passages = [
         RetrievedSourcePassage(
-            source=c.get("source", document_name),
-            text=c.get("text", "")[:400] + ("..." if len(c.get("text", "")) > 400 else ""),
-            score=c.get("score", 0.0),
-            chunk_index=c.get("chunk_index", 0),
-            page_number=c.get("page_number", 1)
+            source=c.get("source") or document_name,
+            text=(c.get("text") or "")[:400] + ("..." if len(c.get("text") or "") > 400 else ""),
+            score=float(c.get("score") or 0.0),
+            chunk_index=int(c.get("chunk_index") or 0),
+            page_number=int(c.get("page_number") or 1)
         )
         for c in chunks
     ]
 
-    explanation_result = await gemini_service.generate_grounded_explanation(
-        question=request.query,
-        context_chunks=context_texts,
-        document_name=document_name,
-        subject=request.subject or "General",
-        topic=request.topic or "Study Notes"
-    )
+    try:
+        explanation_result = await gemini_service.generate_grounded_explanation(
+            question=request.query,
+            context_chunks=context_texts,
+            document_name=document_name,
+            subject=request.subject or "General",
+            topic=request.topic or "Study Notes"
+        )
+    except Exception as e:
+        logger.exception("Gemini grounded explanation failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI explanation generation (Gemini) failed: {str(e)}"
+        )
 
     # Persist query in student's learning activity history
     activity_id = str(uuid.uuid4())
